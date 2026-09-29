@@ -1,0 +1,3 @@
+import { corsHeaders, json } from '../_shared/cors.ts';
+import { serviceClient } from '../_shared/client.ts';
+Deno.serve(async req=>{if(req.method==='OPTIONS')return new Response('ok',{headers:corsHeaders});try{const {reviewer_name,rating,comment}=await req.json(),r=Number(rating);if(!String(reviewer_name||'').trim()||!String(comment||'').trim()||!Number.isInteger(r)||r<1||r>5)return json({error:'Name, rating, and review are required.'},400);const {error}=await serviceClient().from('public_reviews').insert({reviewer_name:String(reviewer_name).trim(),rating:r,comment:String(comment).trim(),status:'pending'});if(error)throw error;return json({ok:true});}catch(e){return json({error:e.message||'Unable to submit review.'},500)}});

@@ -1,0 +1,18 @@
+project_id = "carefur-public-client"
+
+[functions.create-reservation-request]
+verify_jwt = false
+[functions.create-public-inquiry]
+verify_jwt = false
+[functions.get-public-inquiry]
+verify_jwt = false
+[functions.send-public-inquiry-message]
+verify_jwt = false
+[functions.public-room-availability]
+verify_jwt = false
+[functions.submit-public-review]
+verify_jwt = false
+[functions.staff-list-inquiries]
+verify_jwt = true
+[functions.staff-reply-inquiry]
+verify_jwt = true
