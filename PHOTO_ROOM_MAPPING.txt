@@ -1,0 +1,19 @@
+CareFur website room-photo assignments
+Actual photo numbers provided by the owner refer to photo files, not room booking IDs.
+Booking catalog, availability lookup, nightly rates and database IDs have not been changed.
+
+Room 01 / Basic / PHP 600       -> photo room-01-actual.webp
+Room 02 / Basic / PHP 600       -> photo room-04-actual.webp
+Room 03 / Basic / PHP 600       -> photo room-05-actual.webp
+Room 04 / Comfort / PHP 700     -> photo room-02-actual.webp
+Room 05 / Comfort / PHP 700     -> photo room-03-actual.webp
+Room 06 / Deluxe / PHP 800      -> photo room-08-actual.webp
+Room 07 / Deluxe / PHP 800      -> photo room-10-actual.webp
+Room 08 / Premium / PHP 900     -> photo room-07-actual.webp
+Room 09 / Premium / PHP 900     -> photo room-09-actual.webp
+Room 10 / Executive / PHP 1050  -> photo room-06-actual.webp (owner calls exclusive)
+Room 11 / Executive / PHP 1050  -> photo room-11-actual.webp (owner calls exclusive)
+Cat Villa 1 / PHP 600 -> cat-villa-1-actual.webp (12.png)
+Cat Villa 2 / PHP 600 -> cat-villa-2-actual.webp (13.png)
+
+Original uploaded pricing-chart photo not used to override existing rate database.

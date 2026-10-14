@@ -12,17 +12,46 @@ const ROOM_CATALOG = [
   { key: '03', room_number: '03', display_name: 'Room 03', wing: 'Main Wing', deck: 'Upper Deck', category: 'Basic', price: 600, ideal: 'Toy, small-size' },
   { key: '04', room_number: '04', display_name: 'Room 04', wing: 'Main Wing', deck: 'Upper Deck', category: 'Comfort', price: 700, ideal: 'Small, compact' },
   { key: '05', room_number: '05', display_name: 'Room 05', wing: 'Main Wing', deck: 'Upper Deck', category: 'Comfort', price: 700, ideal: 'Small, compact' },
-  { key: '06', room_number: '06', display_name: 'Room 06', wing: 'Main Wing', deck: 'Upper Deck', category: 'Comfort', price: 700, ideal: 'Small, compact' },
+  { key: '06', room_number: '06', display_name: 'Room 06', wing: 'Main Wing', deck: 'Lower Deck', category: 'Deluxe', price: 800, ideal: 'Medium to large' },
   { key: '07', room_number: '07', display_name: 'Room 07', wing: 'Main Wing', deck: 'Lower Deck', category: 'Deluxe', price: 800, ideal: 'Medium to large' },
-  { key: '08', room_number: '08', display_name: 'Room 08', wing: 'Main Wing', deck: 'Lower Deck', category: 'Deluxe', price: 800, ideal: 'Medium to large' },
+  { key: '08', room_number: '08', display_name: 'Room 08', wing: 'Main Wing', deck: 'Lower Deck', category: 'Premium', price: 900, ideal: 'Large / shared suite' },
   { key: '09', room_number: '09', display_name: 'Room 09', wing: 'Main Wing', deck: 'Lower Deck', category: 'Premium', price: 900, ideal: 'Large / shared suite' },
-  { key: '10', room_number: '10', display_name: 'Room 10', wing: 'Main Wing', deck: 'Lower Deck', category: 'Premium', price: 900, ideal: 'Large / shared suite' },
-  { key: '01A', room_number: '01-A', display_name: 'Room 01-A', wing: 'Suites Wing', deck: 'Executive Row', category: 'Deluxe', price: 800, ideal: 'Medium to large' },
-  { key: '02A', room_number: '02-A', display_name: 'Room 02-A', wing: 'Suites Wing', deck: 'Executive Row', category: 'Premium', price: 900, ideal: 'Large / shared suite' },
-  { key: '03A', room_number: '03-A', display_name: 'Room 03-A', wing: 'Suites Wing', deck: 'Executive Row', category: 'Executive', price: 1050, ideal: 'Large–extra large' },
-  { key: '04A', room_number: '04-A', display_name: 'Room 04-A', wing: 'Suites Wing', deck: 'Executive Row', category: 'Executive', price: 1050, ideal: 'Large–extra large' },
-  { key: '05A', room_number: '05-A', display_name: 'Room 05-A', wing: 'Suites Wing', deck: 'Executive Row', category: 'Executive', price: 1050, ideal: 'Large–extra large' },
+  { key: '10', room_number: '10', display_name: 'Room 10', wing: 'Main Wing', deck: 'Lower Deck', category: 'Executive', price: 1050, ideal: 'Large–extra large' },
+  { key: '11', room_number: '11', display_name: 'Room 11', wing: 'Main Wing', deck: 'Lower Deck', category: 'Executive', price: 1050, ideal: 'Large–extra large' },
+  { key: '12', room_number: '12', display_name: 'Cat Villa 1', wing: 'Cat Wing', deck: 'Cat Villas', category: 'Cat Villa', price: 600, ideal: 'Cats' },
+  { key: '13', room_number: '13', display_name: 'Cat Villa 2', wing: 'Cat Wing', deck: 'Cat Villas', category: 'Cat Villa', price: 600, ideal: 'Cats' },
 ]
+
+
+const roomCategorySlug = (category = '') => String(category).toLowerCase().replaceAll(' ', '-')
+// Actual photo filenames supplied by the owner describe photo inventory, not booking room IDs.
+// Keep the established 13-room booking/price catalog while showing the right category photos.
+const ROOM_PHOTO_MAP = {
+  '01': '01', '02': '04', '03': '05',   // Basic photographs
+  '04': '02', '05': '03',             // Comfort photographs
+  '06': '08', '07': '10',             // Deluxe photographs
+  '08': '07', '09': '09',             // Premium photographs
+  '10': '06', '11': '11',             // Executive (exclusive) photographs
+}
+const getRoomImageSrc = (room) => {
+  const number = String(room?.room_number || '').padStart(2, '0')
+  if (number === '12') return '/images/cat-villa-1-actual.webp'
+  if (number === '13') return '/images/cat-villa-2-actual.webp'
+  const photoId = ROOM_PHOTO_MAP[number]
+  return photoId
+    ? `/images/room-${photoId}-actual.webp`
+    : `/images/room-${roomCategorySlug(room?.category)}.jpg`
+}
+const ROOM_INCLUSIONS = ['Fresh water', 'Air-conditioning', 'Supervised playtime and potty breaks', 'Regular video updates']
+const hasCctvAccess = (category) => ['Deluxe', 'Premium', 'Executive'].includes(category)
+function RoomInclusions({ category }) {
+  return (
+    <ul className="cf-inclusions-list">
+      {ROOM_INCLUSIONS.map((item) => <li key={item}><span aria-hidden="true">✓</span>{item}</li>)}
+      {hasCctvAccess(category) && <li><span aria-hidden="true">✓</span>CCTV access</li>}
+    </ul>
+  )
+}
 
 
 function normalizeRoom(value = '') {
@@ -33,7 +62,7 @@ function normalizeRoom(value = '') {
     .replace(/[^A-Z0-9]/g, '')
   const match = cleaned.match(/([A-Z]*)(\d+)([A-Z]*)/)
   if (!match) return cleaned
-  const prefix = match[1] || ''
+  const prefix = (match[1] || '').replace(/^R$/, '')
   const number = String(parseInt(match[2], 10))
   const suffix = match[3] || ''
   return `${prefix}${number}${suffix}`
@@ -61,27 +90,21 @@ function countNights(start, end) {
 }
 
 function buildRooms(dynamicRooms) {
-  const liveRooms = [...(dynamicRooms || [])].sort((a, b) =>
-    String(a.room_number || a.room_name || '').localeCompare(
-      String(b.room_number || b.room_name || ''),
-      undefined,
-      { numeric: true }
-    )
-  )
+  // Match by room number, never by array position: Supabase may return rooms in a different order.
+  const liveByNumber = new Map()
+  for (const live of dynamicRooms || []) {
+    const normalized = normalizeRoom(live.room_number || live.room_name || '')
+    if (normalized) liveByNumber.set(normalized, live)
+  }
 
-  return ROOM_CATALOG.map((base, index) => {
-    const live = liveRooms[index] || null
-    const availability =
-      live?.availability_status ||
+  return ROOM_CATALOG.map((base) => {
+    const live = liveByNumber.get(normalizeRoom(base.room_number)) || null
+    const availability = live?.availability_status ||
       (live?.available === true ? 'available' : live?.available === false ? 'occupied' : null) ||
-      live?.availability ||
-      'contact'
-
+      live?.availability || 'contact'
     return {
       ...base,
       id: live?.room_id || live?.id || null,
-      room_number: live?.room_number || base.room_number,
-      display_name: live?.room_number ? `Room ${live.room_number}` : base.display_name,
       room_name: live?.room_name || `${base.category} Suite`,
       capacity: live?.capacity || null,
       room_status: live?.room_status || live?.status || null,
@@ -91,6 +114,7 @@ function buildRooms(dynamicRooms) {
     }
   })
 }
+
 
 export default function PublicHome() {
   const [date, setDate] = useState(today())
@@ -118,6 +142,8 @@ export default function PublicHome() {
   const [chatError, setChatError] = useState('')
   const [newInquiryState, setNewInquiryState] = useState({ name: '', email: '', subject: '' })
   const [showAllRooms, setShowAllRooms] = useState(false)
+  const [showRoomGuideDetails, setShowRoomGuideDetails] = useState(false)
+  const [showSummaryInclusions, setShowSummaryInclusions] = useState(false)
   const messageEndRef = useRef(null)
 
   const address = import.meta.env.VITE_CAREFUR_ADDRESS || DEFAULT_ADDRESS
@@ -126,7 +152,7 @@ export default function PublicHome() {
   const mapsUrl = import.meta.env.VITE_CAREFUR_MAPS_URL || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
   const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`
 
-  const rooms = useMemo(() => buildRooms(dynamicRooms).slice(0, 15), [dynamicRooms])
+  const rooms = useMemo(() => buildRooms(dynamicRooms), [dynamicRooms])
   const availableRooms = useMemo(() => rooms.filter((r) => r.availability_status === 'available'), [rooms])
   const filteredRooms = useMemo(() => {
     const list = rooms.filter((room) => {
@@ -434,53 +460,67 @@ export default function PublicHome() {
     <>
       <Header onOpenInquiry={() => { setChatOpen(true); setActiveSection('inquiries') }} activeSection={activeSection} />
       <main id="top">
-        <section className="hero shell hero-owner-view">
+        <section className="hero shell hero-owner-view" aria-label="Welcome to CareFur">
           <div className="hero-copy">
-            <span className="eyebrow">PET HOTEL + CONNECTED CARE</span>
-            <h1>Comfortable stays.<br /><span>Closer connection.</span></h1>
-            <p>Find available rooms, estimate boarding cost, reserve a stay, and message CareFur staff before you visit.</p>
-            <div className="hero-actions">
-              <a className="btn primary" href="#reservation">Reserve now</a>
-              <a className="btn secondary" href="#rooms">View rooms</a>
-            </div>
-            <div className="payment-note">
-              <b>✓ In-store payment only</b>
-              <span>Reservation requests are submitted online, but payment and final booking confirmation happen at CareFur.</span>
-            </div>
+            <span className="eyebrow">A LITTLE HOME AWAY FROM HOME · IMUS, CAVITE</span>
+            <h1 className="hero-title">A second home<br />for your <em>fur baby.</em></h1>
+            <p>Real rooms, caring staff, and an owner app so you can check in on your pet during their stay. Come as you are, paws and all.</p>
+            <div className="hero-actions"><a className="btn primary" href="#rooms">Find a room ↗</a><a className="btn secondary" href="#reservation">Plan their stay</a></div>
+            <div className="hero-small-note"><span className="tiny-paw">✳</span><div><b>Reserve online, pay at CareFur.</b><span>We'll confirm the booking with you before your pet checks in.</span></div></div>
           </div>
-          <div className="hero-owner-card card">
-            <div className="pet-icon-wrap">🐕</div>
-            <span className="eyebrow">CAREFUR OWNER ACCESS</span>
-            <h3>Peace of mind while your pet is away.</h3>
-            <p>Check room availability, send an inquiry, and reserve a room using one clean website designed for pet owners.</p>
-            <div className="hero-mini-points">
-              <span>Live room status</span>
-              <span>Clear room rates</span>
-              <span>Fast reservation request</span>
-            </div>
+          <div className="pet-collage hero-single-collage" aria-label="Happy dog and cat at CareFur">
+            <div className="collage-photo hero-main-photo"><img src="/images/hero-pets.png" alt="Happy dog and cat together at CareFur" onError={(e)=>{e.currentTarget.style.display='none'}} /><span className="photo-fallback">🐶🐱</span></div>
+            <span className="hero-sticker">Made for<br />happy tails ✳</span>
+            <div className="live-chip"><span className="live-dot" /> <strong>{roomLoading ? 'Checking rooms…' : `${availableRooms.length} rooms available`}</strong><small>Live availability for {formatShortDate(date)}</small></div>
           </div>
         </section>
+        <div className="marquee-band" aria-label="What makes CareFur special"><div>COZY BEDS <span>✳</span> CARING STAFF <span>✳</span> OWNER APP <span>✳</span> HAPPY TAILS <span>✳</span> COZY BEDS <span>✳</span> CARING STAFF</div></div>
 
         <section className="section shell" id="rooms">
           <div className="section-head split">
             <div>
               <span className="eyebrow">ROOM AVAILABILITY</span>
-              <h2>Choose from 15 featured rooms</h2>
-              <p>By default, the list starts with available rooms only. Browse the first 6 rooms, then show more when needed.</p>
+              <h2>Find their favorite little corner</h2>
+              <p>From ₱600/night. Pick a room that suits your pet, then send us a reservation request.</p>
             </div>
             <label>Date<input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
           </div>
 
-          <div className="summary">
-            <div><strong>{availableRooms.length}</strong><span>Available</span></div>
-            <div><strong>{occupiedRooms.length}</strong><span>Occupied</span></div>
-            <div><strong>{rooms.filter((r) => r.availability_status === 'contact').length}</strong><span>Ask staff</span></div>
+          <div className="cf-room-guide" aria-label="13 room categories and nightly pricing">
+            <div className="cf-room-guide-title">
+              <span className="eyebrow">EXPLORE OUR SPACES</span>
+              <h3>Find the right room for every pet</h3>
+              <p className="cf-room-guide-intro">13 suites in total: five upstairs, six downstairs and two dedicated cat villas.</p>
+            </div>
+
+            <figure className="cf-room-guide-hero">
+              <img src="/carefur-room-guide.png" alt="CareFur Room Guide showing all 13 rooms and nightly rates" />
+            </figure>
+
+            <div className="cf-room-guide-toggle">
+              <button type="button" className="btn secondary" aria-expanded={showRoomGuideDetails} aria-controls="carefur-room-details" onClick={() => setShowRoomGuideDetails((prev) => !prev)}>
+                {showRoomGuideDetails ? 'Show less' : 'Learn more about our rooms'}
+              </button>
+            </div>
+
+            {showRoomGuideDetails && (
+              <div id="carefur-room-details" className="cf-inclusions-panel">
+                <div className="cf-inclusions-panel-heading">
+                  <span className="eyebrow">WHAT'S INCLUDED</span>
+                  <h4>More comfort in every stay</h4>
+                </div>
+                <RoomInclusions />
+                <p className="cf-inclusions-note">CCTV access is included with Deluxe, Premium, and Executive suites only.</p>
+              </div>
+            )}
           </div>
+
+          <div className="inline-room-stats" aria-live="polite"><span><b>{availableRooms.length}</b> rooms ready</span><i>✳</i><span><b>{occupiedRooms.length}</b> cozy and occupied</span><i>✳</i><span><b>{rooms.filter((r) => r.availability_status === 'contact').length}</b> ask our staff</span></div>
 
           <div className="room-toolbar card">
             <div className="toolbar-copy">
-              <b>Room list</b>
-              <span>Showing 6 rooms first for a cleaner pet-owner view.</span>
+              <b>Find the right fit</b>
+              <span>Explore a few rooms at a time, or show the whole house.</span>
             </div>
             <div className="toolbar-filters">
               <label>Status
@@ -499,6 +539,7 @@ export default function PublicHome() {
                   <option>Deluxe</option>
                   <option>Premium</option>
                   <option>Executive</option>
+                  <option>Cat Villa</option>
                 </select>
               </label>
               <label>Sort
@@ -522,7 +563,8 @@ export default function PublicHome() {
                 const statusClass = r.availability_status === 'available' ? 'ok' : r.availability_status === 'occupied' ? 'busy' : 'neutral'
                 const isSelected = selectedRoomKey === r.key
                 return (
-                  <article className={`card room rich-room ${isSelected ? 'selected' : ''}`} key={r.key}>
+                  <article className={`card room rich-room room-${r.category.toLowerCase()} ${isSelected ? 'selected' : ''}`} key={r.key}>
+                    <div className="room-photo"><img src={getRoomImageSrc(r)} alt={`Photo provided for ${r.display_name} at CareFur`} onError={(e)=>{e.currentTarget.style.display='none'}} /><span className="room-photo-fallback">{r.category === 'Basic' ? '🐾' : r.category === 'Comfort' ? '🦴' : '🐕'}</span><span className="room-number-mark">{r.room_number}</span></div>
                     <div className="row top-row">
                       <div>
                         <h3>{r.display_name}</h3>
@@ -531,12 +573,10 @@ export default function PublicHome() {
                       <span className={`pill ${statusClass}`}>{r.availability_status === 'available' ? 'Available' : r.availability_status === 'occupied' ? 'Occupied' : 'Ask staff'}</span>
                     </div>
                     <div className="room-compact-meta">
-                      <span>{r.category}</span>
-                      <span>•</span>
-                      <span>{peso(r.price)} / night</span>
+                      <span>🐶 {r.ideal}</span>
                     </div>
                     <div className="room-actions">
-                      <div className="rate-block"><small>{r.ideal}</small></div>
+                      <div className="rate-block"><strong>{peso(r.price)}</strong><small>per night · 🐕 🐈</small></div>
                       <button
                         type="button"
                         className={`btn ${r.availability_status === 'available' ? 'primary' : 'secondary'}`}
@@ -568,18 +608,36 @@ export default function PublicHome() {
           <div className="shell two-col reservation-grid">
             <div>
               <span className="eyebrow">RESERVATION REQUEST</span>
-              <h2>Estimate your stay before you visit</h2>
-              <p>Choose an available room, select your dates, and review the estimated total. Final confirmation still happens on-site after payment.</p>
-              <div className="steps">
-                <p><b>1.</b> Pick an available room.</p>
-                <p><b>2.</b> Enter your pet and owner details.</p>
-                <p><b>3.</b> See the nightly rate and estimated total.</p>
-                <p><b>4.</b> Visit CareFur to pay and confirm.</p>
+              <h2>Four little steps to their sleepover</h2>
+              <p>Choose their spot, tell us about your pet, and see your estimate before sending a request. Payment is at the hotel.</p>
+              <div className="steps" aria-label="Reservation steps">
+                <p><b>01</b> <span>Choose their room</span></p>
+                <p><b>02</b> <span>Tell us about your pet</span></p>
+                <p><b>03</b> <span>Check your estimate</span></p>
+                <p><b>04</b> <span>Send a request, then pay at the hotel</span></p>
               </div>
-              <div className="estimator card">
-                <h3>Selected room summary</h3>
+              <div className="estimator card" aria-live="polite">
+                <div className="cf-summary-heading">
+                  <h3>Selected room summary</h3>
+                  <button type="button" className="cf-summary-help" aria-label="Show room inclusions" aria-expanded={showSummaryInclusions} aria-controls="selected-room-inclusions" onClick={() => setShowSummaryInclusions((prev) => !prev)}>?</button>
+                </div>
+                {showSummaryInclusions && (
+                  <div id="selected-room-inclusions" className="cf-summary-inclusions">
+                    <h4>Room inclusions</h4>
+                    <RoomInclusions category={selectedRoom?.category} />
+                    {!selectedRoom && <p className="cf-inclusions-note">CCTV access is available in Deluxe, Premium, and Executive suites.</p>}
+                  </div>
+                )}
                 {selectedRoom ? (
                   <>
+                    <div className="selected-room-preview">
+                      <img src={getRoomImageSrc(selectedRoom)} alt={`${selectedRoom.display_name} preview`} onError={(e)=>{e.currentTarget.style.display='none'}} />
+                      <div className="selected-room-preview-copy">
+                        <small>{selectedRoom.deck}</small>
+                        <strong>{selectedRoom.display_name}</strong>
+                        <span>{selectedRoom.category} · {peso(selectedRoom.price)} / night</span>
+                      </div>
+                    </div>
                     <div className="summary-line"><span>Room</span><b>{selectedRoom.display_name}</b></div>
                     <div className="summary-line"><span>Category</span><b>{selectedRoom.category}</b></div>
                     <div className="summary-line"><span>Rate</span><b>{peso(selectedRoom.price)} / night</b></div>
@@ -592,8 +650,8 @@ export default function PublicHome() {
               </div>
             </div>
 
-            <form className="card form" onSubmit={submitReservation}>
-              <div className="form-title"><h3>Reservation details</h3><span className="pill busy">Pay in store</span></div>
+            <form className="card form reservation-form" onSubmit={submitReservation}>
+              <div className="form-title"><h3>Tell us about your little guest</h3><span className="pill busy">Pay in store</span></div>
               <div className="form-grid">
                 <label>Owner full name *<input name="owner_name" required /></label>
                 <label>Email *<input name="owner_email" type="email" required /></label>
@@ -618,7 +676,7 @@ export default function PublicHome() {
                 <span>Estimated total</span>
                 <b>{selectedRoom ? (estimatedTotal ? peso(estimatedTotal) : `${peso(selectedRoom.price)} / night`) : 'Select a room'}</b>
               </div>
-              <button className="btn primary full" disabled={reservationSubmitting}>{reservationSubmitting ? 'Submitting…' : 'Submit reservation request'}</button>
+              <button className="btn primary full" disabled={reservationSubmitting}>{reservationSubmitting ? 'Submitting…' : 'Send reservation request'}</button>
               {reservationResult && <div className="result">{reservationResult}</div>}
             </form>
           </div>
@@ -627,8 +685,8 @@ export default function PublicHome() {
         <section className="section shell" id="reviews">
           <div className="section-head center">
             <span className="eyebrow">REVIEWS</span>
-            <h2>Feedback from pet owners</h2>
-            <p>Reviews are welcome, and a Gmail address is required when submitting one.</p>
+            <h2>Little notes from pet parents</h2>
+            <p>Stayed with us? Tell other fur parents what your pet thought. A Gmail address is needed to leave a review.</p>
           </div>
           <div className="grid reviews">
             {reviews.length ? reviews.map((r, i) => (
@@ -638,10 +696,10 @@ export default function PublicHome() {
                 <b>{r.reviewer_name}</b>
                 <small>{formatShortDate(r.created_at)}</small>
               </article>
-            )) : <div className="empty">Approved reviews will appear here.</div>}
+            )) : <div className="empty review-empty"><span aria-hidden="true">💌 🐾</span><h3>No reviews yet!</h3><p>Be the first to brag about your fur baby.</p></div>}
           </div>
           <form className="card review-form" onSubmit={submitReview}>
-            <h3>Share your experience</h3>
+            <h3>Leave a little love note</h3>
             <div className="form-grid">
               <label>Your name *<input name="reviewer_name" required /></label>
               <label>Gmail address *<input name="reviewer_email" type="email" placeholder="yourname@gmail.com" required /></label>
@@ -657,26 +715,15 @@ export default function PublicHome() {
         <section className="section app-owner-section" id="app">
           <div className="shell app-owner-grid">
             <div className="app-owner-copy">
-              <span className="eyebrow">CAREFUR OWNER APP</span>
-              <h2>Your pet’s stay, in your pocket.</h2>
-              <p>Use the CareFur owner app during boarding to view stay details, feeding activity, pet information, camera access, and messages from staff.</p>
-              <div className="app-owner-features">
-                <span>✓ Boarding details</span>
-                <span>✓ Feeding activity</span>
-                <span>✓ Live room camera</span>
-                <span>✓ Pet profile</span>
-                <span>✓ Staff messaging</span>
-                <span>✓ Stay updates</span>
-              </div>
-              <div className="hero-actions app-owner-actions">
-                <a className="btn primary" href={import.meta.env.VITE_CAREFUR_ANDROID_URL || '#'}>Android download</a>
-                <a className="btn secondary" href={import.meta.env.VITE_CAREFUR_HUAWEI_URL || '#'}>Huawei / AppGallery</a>
-              </div>
+              <span className="eyebrow light">FOR THE PET PARENTS</span>
+              <h2>Missing them? <em>Take a peek.</em></h2>
+              <p>The CareFur owner app helps you keep up with their stay, from feeding updates to camera access and messages with our team.</p>
+              <div className="app-benefits"><p>◉ <span><b>See how they're doing</b><small>Camera access during their stay</small></span></p><p>◉ <span><b>Know when they've eaten</b><small>Feeding activity and stay details</small></span></p><p>◉ <span><b>Ask us anything</b><small>Message our team from the app</small></span></p></div>
+              <div className="hero-actions app-owner-actions"><a className="btn light-btn" href={import.meta.env.VITE_CAREFUR_ANDROID_URL || '#'}>Get the Android app ↗</a><a className="text-link" href={import.meta.env.VITE_CAREFUR_HUAWEI_URL || '#'}>Huawei / AppGallery ↗</a></div>
             </div>
-            <div className="card app-owner-qr">
-              <img src="/app-qr-custom.png" alt="CareFur app QR code" />
-              <h3>Scan for CareFur</h3>
-              <p>Scan the QR code on your phone for quick access to the CareFur owner app.</p>
+            <div className="app-visual">
+              <div className="phone-mockup" aria-label="Illustrative CareFur owner app preview; sample content only"><div className="phone-speaker"/><div className="phone-inner"><div className="phone-top"><b>CareFur</b><span>● Sample preview</span></div><div className="phone-camera">🐶<span>CAMERA PREVIEW</span></div><div className="phone-update"><span>🍽️</span><div><b>Feeding log</b><small>Your pet's feeding updates appear here</small></div></div><div className="phone-update"><span>💬</span><div><b>Chat with staff</b><small>Send a message anytime</small></div></div></div></div>
+              <div className="app-qr-sticker"><img src="/app-qr-custom.png" alt="Scan to open CareFur owner app"/><b>Scan me! ↗</b></div>
             </div>
           </div>
         </section>
@@ -685,15 +732,15 @@ export default function PublicHome() {
           <div className="two-col location">
             <div>
               <span className="eyebrow">LOCATION</span>
-              <h2>Visit CareFur</h2>
-              <p>All reservations are finalized at the pet hotel, where payment and staff confirmation are completed.</p>
+              <h2>Come say hello!</h2>
+              <p>Find us in Malagasang 1B, Imus. Come meet the team and see where your fur baby will stay.</p>
               <div className="info">
                 <p><b>📍 Address</b><br />{address}</p>
                 <p><b>☎ Contact</b><br />{phone}<br />{email}</p>
                 <p><b>💳 Payment</b><br />In-store payment only.</p>
                 <p><b>🕒 Note</b><br />Use the site to check availability and estimate cost before visiting.</p>
               </div>
-              <a className="btn secondary" target="_blank" rel="noreferrer" href={mapsUrl}>Get directions</a>
+              <a className="btn secondary" target="_blank" rel="noreferrer" href={mapsUrl}>Get directions ↗</a>
             </div>
             <div className="map-frame card"><div className="map card map-live">
               <iframe title="CareFur location on Google Maps" src={mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
@@ -703,10 +750,10 @@ export default function PublicHome() {
       </main>
 
       <footer className="enhanced-footer">
-        <div className="shell footer footer-rich">
+        <div className="shell"><h2 className="footer-signoff">See you soon, <em>fur friend!</em> 🐾</h2><div className="footer footer-rich">
           <div>
             <div className="brand inverse"><img src="/carefur-logo.png" alt="CareFur" /><span>CareFur</span></div>
-            <p>Pet hotel reservations, room availability, owner app access, and connected communication in one place.</p>
+            <p>Good naps. Full bellies. So many tail wags. Made with love in Imus, Cavite.</p>
           </div>
           <div>
             <h4>Explore</h4>
@@ -724,9 +771,10 @@ export default function PublicHome() {
           <div>
             <h4>Need help?</h4>
             <p>Open a live inquiry to chat with CareFur staff.</p>
-            <button className="btn secondary footer-cta" onClick={() => setChatOpen(true)}>Open inquiries</button>
+            <button className="btn secondary footer-cta" onClick={() => setChatOpen(true)}>Message our staff</button>
           </div>
         </div>
+        <div className="footer-wordmark" aria-hidden="true">CareFur.</div></div>
       </footer>
 
       <button className={`chat-launcher ${chatOpen ? 'open' : ''}`} onClick={() => setChatOpen((v) => !v)} aria-label="Open CareFur inquiry chat">
